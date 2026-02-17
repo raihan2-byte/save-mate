@@ -2,9 +2,11 @@ package service
 
 import (
 	"SaveMate/models/user"
+	"SaveMate/util"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type MockUserRepository struct {
@@ -24,61 +26,140 @@ func (m *MockUserRepository) CreateUser(u *user.User) (*user.User, error) {
 	return u, nil
 }
 
-func TestRegisterUser_expectedSuccess(t *testing.T) {
-	mockRepository := &MockUserRepository{
-		User: nil,
-		Err:  nil,
-	}
-
-	service := NewUserService(mockRepository)
-	input := &user.UserRegister{
-		Email:    "test@gmail.com",
-		Password: "P@ssw0rd",
-	}
-
-	result, err := service.RegisterUser(input)
-
-	assert.Nil(t, err)
-	assert.NotNil(t, result)
-	assert.Equal(t, "test@gmail.com", result.Email)
+func (m *MockUserRepository) FindByUserId(id string) (*user.User, error) {
+	return m.User, nil
 }
 
-func TestRegisterUserIfPasswordDoesntHaveUppercase_expectedMessageFailed(t *testing.T) {
-	mockRepository := &MockUserRepository{
-		User: nil,
-		Err:  nil,
-	}
+func TestUserService(t *testing.T) {
 
-	service := NewUserService(mockRepository)
-	input := &user.UserRegister{
-		Email:    "test@gmail.com",
-		Password: "inipassword",
-	}
+	t.Run("TestRegisterUser_expectedSuccess", func(t *testing.T) {
+		mockRepository := &MockUserRepository{
+			User: nil,
+			Err:  nil,
+		}
 
-	result, err := service.RegisterUser(input)
+		service := NewUserService(mockRepository)
+		input := &user.UserRegister{
+			Email:    "test@gmail.com",
+			Password: "P@ssw0rd",
+		}
 
-	assert.Nil(t, result)
-	assert.NotNil(t, err)
-	assert.Equal(t, "password must contain at least one uppercase letter", err.Error())
+		result, err := service.RegisterUser(input)
 
-}
+		assert.Nil(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "test@gmail.com", result.Email)
+	})
 
-func TestRegisterWhenEmailExist_expectedFail(t *testing.T) {
-	mockRepository := &MockUserRepository{
-		User: &user.User{
-			Email: "test@gmail.com",
-		},
-		Err: nil,
-	}
+	t.Run("TestRegisterUserIfPasswordDoesntHaveUppercase_expectedMessageFailed", func(t *testing.T) {
+		mockRepository := &MockUserRepository{
+			User: nil,
+			Err:  nil,
+		}
 
-	service := NewUserService(mockRepository)
-	input := &user.UserRegister{
-		Email:    "test@gmail.com",
-		Password: "123",
-	}
+		service := NewUserService(mockRepository)
+		input := &user.UserRegister{
+			Email:    "test@gmail.com",
+			Password: "inipassword",
+		}
 
-	result, err := service.RegisterUser(input)
+		result, err := service.RegisterUser(input)
 
-	assert.NotNil(t, err)
-	assert.Nil(t, result)
+		assert.Nil(t, result)
+		assert.NotNil(t, err)
+		assert.Equal(t, "password must contain at least one uppercase letter", err.Error())
+	})
+
+	t.Run("TestRegisterWhenEmailExist_expectedFail", func(t *testing.T) {
+		mockRepository := &MockUserRepository{
+			User: &user.User{
+				Email: "test@gmail.com",
+			},
+			Err: nil,
+		}
+
+		service := NewUserService(mockRepository)
+		input := &user.UserRegister{
+			Email:    "test@gmail.com",
+			Password: "123",
+		}
+
+		result, err := service.RegisterUser(input)
+
+		assert.NotNil(t, err)
+		assert.Nil(t, result)
+	})
+
+	t.Run("TestLoginUser_expectedSuccess", func(t *testing.T) {
+		hashedPassword, err := bcrypt.GenerateFromPassword(
+			[]byte("P@ssw0rd"),
+			bcrypt.DefaultCost,
+		)
+
+		mockRepository := &MockUserRepository{
+			User: &user.User{
+				Email:    "test@gmail.com",
+				Password: string(hashedPassword),
+			},
+			Err: nil,
+		}
+
+		service := NewUserService(mockRepository)
+		input := &user.UserLoginRequest{
+			Email:    "test@gmail.com",
+			Password: "P@ssw0rd",
+		}
+
+		result, err := service.LoginUser(input)
+
+		assert.Nil(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "test@gmail.com", result.Email)
+	})
+
+	t.Run("TestLoginUserWhenEmailIsNotFound_expectedFailed", func(t *testing.T) {
+		mockRepository := &MockUserRepository{
+			User: nil,
+			Err:  nil,
+		}
+
+		service := NewUserService(mockRepository)
+		input := &user.UserLoginRequest{
+			Email:    "test@gmail.com",
+			Password: "P@ssw0rd",
+		}
+
+		result, err := service.LoginUser(input)
+
+		assert.Nil(t, result)
+		assert.NotNil(t, err)
+		assert.Equal(t, util.MessageAuthenticationFailed, err.Error())
+	})
+
+	t.Run("TestLoginUserWhenPasswordIsNotMatch_expectedFailed", func(t *testing.T) {
+		hashedPassword, err := bcrypt.GenerateFromPassword(
+			[]byte("P@ssw0rd"),
+			bcrypt.DefaultCost,
+		)
+
+		mockRepository := &MockUserRepository{
+			User: &user.User{
+				Email:    "test@gmail.com",
+				Password: string(hashedPassword),
+			},
+			Err: nil,
+		}
+
+		service := NewUserService(mockRepository)
+		input := &user.UserLoginRequest{
+			Email:    "test@gmail.com",
+			Password: "P@ssw0rd1234",
+		}
+
+		result, err := service.LoginUser(input)
+
+		assert.Nil(t, result)
+		assert.NotNil(t, err)
+		assert.Equal(t, util.MessageAuthenticationFailed, err.Error())
+	})
 }

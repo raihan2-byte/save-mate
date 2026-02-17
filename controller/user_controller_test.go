@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,6 +20,19 @@ import (
 type MockUserService struct {
 	User *user.User
 	Err  error
+}
+
+type MockUserAuthService struct {
+	Token *jwt.Token
+	Err   error
+}
+
+func (m *MockUserAuthService) GenerateToken(userID string, role string) (*jwt.Token, error) {
+	return m.Token, m.Err
+}
+
+func (m *MockUserAuthService) ValidationToken(token string) (*jwt.Token, error) {
+	return m.Token, m.Err
 }
 
 func (m *MockUserService) RegisterUser(input *user.UserRegister) (*user.User, error) {
@@ -39,6 +53,10 @@ func (m *MockUserService) RegisterUser(input *user.UserRegister) (*user.User, er
 	}, nil
 }
 
+func (m *MockUserService) LoginUser(input *user.UserLoginRequest) (*user.User, error) {
+	return nil, nil
+}
+
 type RegisterResponse struct {
 	Status  int                       `json:"status"`
 	Message string                    `json:"message"`
@@ -55,7 +73,7 @@ func TestRegisterUserWhenEmailIsAvailable_expectedReturnCode422(t *testing.T) {
 		Err: nil,
 	}
 
-	controller := NewUserController(mockService)
+	controller := NewUserController(mockService, nil)
 	router.POST("/register", controller.RegisterUser)
 
 	body := `{"username" : "test", "email" : "test@gmail.com", "password" : "inipassword"}`
@@ -77,7 +95,7 @@ func TestRegisterUserWhenEmailIsNotMatchWithFormat_expectedReturnCode422(t *test
 		Err:  nil,
 	}
 
-	controller := NewUserController(mockService)
+	controller := NewUserController(mockService, nil)
 	router.POST("/register", controller.RegisterUser)
 
 	body := `{"username" : "test", "email" : "test&gmail.com", "password" : "P@ssw0rd"}`
@@ -103,7 +121,7 @@ func TestRegisterUser_expectedSuccess(t *testing.T) {
 		Err:  nil,
 	}
 
-	controller := NewUserController(mockService)
+	controller := NewUserController(mockService, nil)
 	router.POST("/register", controller.RegisterUser)
 
 	body := `{"username" : "test", "email" : "test@gmail.com", "password" : "inipassword"}`
@@ -129,7 +147,7 @@ func TestRegisterUserWhenFieldRequiredNotFilled_expectedReturn422Code(t *testing
 		Err: nil,
 	}
 
-	controller := NewUserController(mockService)
+	controller := NewUserController(mockService, nil)
 	router.POST("/register", controller.RegisterUser)
 
 	body := `{"email" : "test@gmail.com", "password" : "inipassword"}`
@@ -151,7 +169,7 @@ func TestRegisterUserWhenSucces_expectedReturnRegisterResponseFormatter(t *testi
 		Err:  nil,
 	}
 
-	controller := NewUserController(mockService)
+	controller := NewUserController(mockService, nil)
 	router.POST("/register", controller.RegisterUser)
 
 	body := `{"username" : "test", "email" : "test@gmail.com", "password" : "inipassword"}`
@@ -172,7 +190,7 @@ func TestRegisterUserWhenSucces_expectedReturnRegisterResponseFormatter(t *testi
 	assert.Nil(t, err)
 
 	assert.Equal(t, 200, resp.Status)
-	assert.Equal(t, util.MessageSuccessRegister, resp.Message)
+	assert.Equal(t, util.MessageSuccess, resp.Message)
 	assert.Equal(t, "test@gmail.com", resp.Data.Email)
 	assert.Equal(t, "test", resp.Data.Username)
 	assert.Equal(t, "123456", resp.Data.UserId)

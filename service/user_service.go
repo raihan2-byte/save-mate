@@ -14,8 +14,9 @@ import (
 )
 
 type UserService interface {
-	RegisterUser(user *user.UserRegister) (*user.User, error)
+	RegisterUser(userRequest *user.UserRegister) (*user.User, error)
 	// FindByUserId(UserId int) (*user.User, error)
+	LoginUser(loginRequest *user.UserLoginRequest) (*user.User, error)
 }
 
 type userService struct {
@@ -35,7 +36,7 @@ func ValidatePassword(password string) error {
 	)
 
 	if len(password) < 6 {
-		return errors.New("password must be at least 6 characters")
+		return errors.New(util.MessagePasswordMustBeHave6Character)
 	}
 
 	for _, ch := range password {
@@ -52,30 +53,52 @@ func ValidatePassword(password string) error {
 	}
 
 	if !hasUpper {
-		return errors.New("password must contain at least one uppercase letter")
+		return errors.New(util.MessagePasswordMustBeHaveUppercase)
 	}
 	if !hasLower {
-		return errors.New("password must contain at least one lowercase letter")
+		return errors.New(util.MessagePasswordMustBeHaveLowercase)
 	}
 	if !hasNumber {
-		return errors.New("password must contain at least one number")
+		return errors.New(util.MessagePasswordMustBeHaveNumber)
 	}
 	if !hasSpecial {
-		return errors.New("password must contain at least one special character")
+		return errors.New(util.MessagePasswordMustBeHaveSpecialCharacter)
 	}
 
 	return nil
+}
+
+func (s *userService) LoginUser(loginRequest *user.UserLoginRequest) (*user.User, error) {
+	err := ValidatePassword(loginRequest.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	cek, err := s.repositoryUser.FindByEmail(loginRequest.Email)
+	if err != nil || cek == nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New(util.MessageAuthenticationFailed)
+		}
+		return nil, errors.New(util.MessageAuthenticationFailed)
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(cek.Password), []byte(loginRequest.Password))
+	if err != nil {
+		return nil, errors.New(util.MessageAuthenticationFailed)
+	}
+
+	return cek, nil
 }
 
 func (s *userService) RegisterUser(userRequest *user.UserRegister) (*user.User, error) {
 
 	cek, err := s.repositoryUser.FindByEmail(userRequest.Email)
 	if err != nil && err != sql.ErrNoRows {
-		return nil, err
+		return nil, errors.New(util.MessageAuthenticationFailed)
 	}
 
 	if cek != nil {
-		return nil, errors.New(util.MessageEmailIsNotAvailable)
+		return nil, errors.New(util.MessageAuthenticationFailed)
 	}
 
 	err = ValidatePassword(userRequest.Password)
@@ -89,7 +112,7 @@ func (s *userService) RegisterUser(userRequest *user.UserRegister) (*user.User, 
 	newUser.Email = userRequest.Email
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(userRequest.Password), bcrypt.MinCost)
 	if err != nil {
-		return newUser, err
+		return newUser, errors.New(util.MessageAuthenticationFailed)
 	}
 	newUser.Password = string(passwordHash)
 	newUser.Role = util.RoleUser

@@ -15,11 +15,13 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 
 	userRepository := repository.NewUserRepository(db)
 	userService := service.NewUserService(userRepository)
-	userController := controller.NewUserController(userService)
+	authService := service.NewUserAuthService()
+	userController := controller.NewUserController(userService, authService)
 
 	user := router.Group("/api/user")
 	{
 		user.POST("/register", userController.RegisterUser)
+		user.POST("/login", userController.LoginUser)
 	}
 
 	return router

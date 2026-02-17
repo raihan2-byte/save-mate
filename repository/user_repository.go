@@ -7,7 +7,7 @@ import (
 
 type UserRepository interface {
 	CreateUser(user *user.User) (*user.User, error)
-	// FindByUserId(UserId int) (*user.User, error)
+	FindByUserId(userId string) (*user.User, error)
 	FindByEmail(email string) (*user.User, error)
 }
 
@@ -33,26 +33,26 @@ func (r *userRepository) CreateUser(user *user.User) (*user.User, error) {
 	return user, nil
 }
 
-// func (r *userRepository) FindByUserId(Id int) (*user.User, error) {
-// 	query := "SELECT id, user_id, username, email, role FROM USERS WHERE id = ? "
+func (r *userRepository) FindByUserId(userId string) (*user.User, error) {
+	query := "SELECT id, user_id, username, email, role FROM USERS WHERE id = ? "
 
-// 	row := r.db.QueryRow(query, Id)
+	row := r.db.QueryRow(query, userId)
 
-// 	user := &user.User{}
-// 	err := row.Scan(&user.Id, &user.UserId, &user.Email, &user.Role, &user.CreatedAt, &user.UpdatedAt)
-// 	if err != nil {
-// 		return user, err
-// 	}
-// 	return user, nil
-// }
+	user := &user.User{}
+	err := row.Scan(&user.Id, &user.UserId, &user.Email, &user.Role, &user.CreatedAt, &user.UpdatedAt)
+	if err != nil {
+		return user, err
+	}
+	return user, nil
+}
 
 func (r *userRepository) FindByEmail(email string) (*user.User, error) {
-	query := "SELECT id, user_id, username, email, role FROM users WHERE email = ? "
+	query := "SELECT id, user_id, username, email, role, password FROM users WHERE email = ? "
 
 	row := r.db.QueryRow(query, email)
 
 	user := &user.User{}
-	err := row.Scan(&user.Id, &user.UserId, &user.Username, &user.Email, &user.Role)
+	err := row.Scan(&user.Id, &user.UserId, &user.Username, &user.Email, &user.Role, &user.Password)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
