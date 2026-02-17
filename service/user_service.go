@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"time"
+	"unicode"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -25,6 +26,47 @@ func NewUserService(repositoryUser repository.UserRepository) *userService {
 	return &userService{repositoryUser}
 }
 
+func ValidatePassword(password string) error {
+	var (
+		hasUpper   bool
+		hasLower   bool
+		hasNumber  bool
+		hasSpecial bool
+	)
+
+	if len(password) < 6 {
+		return errors.New("password must be at least 6 characters")
+	}
+
+	for _, ch := range password {
+		switch {
+		case unicode.IsUpper(ch):
+			hasUpper = true
+		case unicode.IsLower(ch):
+			hasLower = true
+		case unicode.IsNumber(ch):
+			hasNumber = true
+		case unicode.IsPunct(ch) || unicode.IsSymbol(ch):
+			hasSpecial = true
+		}
+	}
+
+	if !hasUpper {
+		return errors.New("password must contain at least one uppercase letter")
+	}
+	if !hasLower {
+		return errors.New("password must contain at least one lowercase letter")
+	}
+	if !hasNumber {
+		return errors.New("password must contain at least one number")
+	}
+	if !hasSpecial {
+		return errors.New("password must contain at least one special character")
+	}
+
+	return nil
+}
+
 func (s *userService) RegisterUser(userRequest *user.UserRegister) (*user.User, error) {
 
 	cek, err := s.repositoryUser.FindByEmail(userRequest.Email)
@@ -33,7 +75,12 @@ func (s *userService) RegisterUser(userRequest *user.UserRegister) (*user.User, 
 	}
 
 	if cek != nil {
-		return nil, errors.New(util.MessageEmailIsAvailable)
+		return nil, errors.New(util.MessageEmailIsNotAvailable)
+	}
+
+	err = ValidatePassword(userRequest.Password)
+	if err != nil {
+		return nil, err
 	}
 
 	newUser := &user.User{}

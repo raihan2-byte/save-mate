@@ -8,5 +8,5 @@ const (
 	MessageValidationError = "validation error"
 	MessageFailedRegister  = "failed register user"
 
-	MessageEmailIsAvailable = "email already registered"
+	MessageEmailIsNotAvailable = "email already registered"
 )

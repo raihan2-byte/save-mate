@@ -47,6 +47,6 @@ func (h *userController) RegisterUser(c *gin.Context) {
 		return
 	}
 
-	response := util.APIResponse(http.StatusOK, util.MessageSuccessRegister, newUser)
+	response := util.APIResponse(http.StatusOK, util.MessageSuccessRegister, user.FormatUserRegisterResponse(newUser))
 	c.JSON(http.StatusOK, response)
 }
