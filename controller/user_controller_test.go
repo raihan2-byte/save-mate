@@ -57,6 +57,10 @@ func (m *MockUserService) LoginUser(input *user.UserLoginRequest) (*user.User, e
 	return nil, nil
 }
 
+func (m *MockUserService) FindByUserId(userID string) (*user.User, error) {
+	return m.User, m.Err
+}
+
 type RegisterResponse struct {
 	Status  int                       `json:"status"`
 	Message string                    `json:"message"`
