@@ -12,6 +12,7 @@ import (
 
 type PersonalDataService interface {
 	CreatePersonalData(personalDataRequest *personaldata.PersonalDataRequest) (*personaldata.PersonalData, error)
+	GetPersonalDataByUserId(userId string) (*personaldata.PersonalData, error)
 }
 
 type personalDataService struct {
@@ -21,6 +22,20 @@ type personalDataService struct {
 
 func NewPersonalDataService(repositoryPersonalData repository.PersonalDataRepository, repositoryUser repository.UserRepository) *personalDataService {
 	return &personalDataService{repositoryPersonalData, repositoryUser}
+}
+
+func (s *personalDataService) GetPersonalDataByUserId(userId string) (*personaldata.PersonalData, error) {
+	findUserByUserId, err := s.repositoryUser.FindByUserId(userId)
+	if err != nil || findUserByUserId == nil {
+		return nil, errors.New(util.MessageUnauthorized)
+	}
+
+	getData, err := s.repositoryPersonalData.FindPersonalDataByUserId(findUserByUserId.UserId)
+	if err != nil {
+		return getData, err
+	}
+
+	return getData, nil
 }
 
 func (s *personalDataService) CreatePersonalData(personalDataRequest *personaldata.PersonalDataRequest, userId string) (*personaldata.PersonalData, error) {
