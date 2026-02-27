@@ -34,7 +34,7 @@ func (r *userRepository) CreateUser(user *user.User) (*user.User, error) {
 }
 
 func (r *userRepository) FindByUserId(userId string) (*user.User, error) {
-	query := "SELECT id, user_id, username, email, role FROM USERS WHERE id = ? "
+	query := "SELECT id, user_id, username, email, role FROM USERS WHERE user_id = ? "
 
 	row := r.db.QueryRow(query, userId)
 

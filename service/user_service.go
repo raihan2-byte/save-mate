@@ -15,7 +15,7 @@ import (
 
 type UserService interface {
 	RegisterUser(userRequest *user.UserRegister) (*user.User, error)
-	// FindByUserId(UserId int) (*user.User, error)
+	FindByUserId(userId string) (*user.User, error)
 	LoginUser(loginRequest *user.UserLoginRequest) (*user.User, error)
 }
 
@@ -66,6 +66,17 @@ func ValidatePassword(password string) error {
 	}
 
 	return nil
+}
+
+func (s *userService) FindByUserId(userId string) (*user.User, error) {
+	user, err := s.repositoryUser.FindByUserId(userId)
+	if err != nil || user == nil {
+		if err == sql.ErrNoRows {
+			return nil, err
+		}
+		return nil, err
+	}
+	return user, nil
 }
 
 func (s *userService) LoginUser(loginRequest *user.UserLoginRequest) (*user.User, error) {

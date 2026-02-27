@@ -10,6 +10,8 @@ const (
 	MessageEmailIsNotAvailable  = "email already registered"
 	MessageAuthenticationFailed = "authentication failed"
 	MessageUserNotFound         = "user not found"
+	MessageUnauthorized         = "Unauthorized"
+	MessageForbidden            = "Forbidden"
 
 	MessagePasswordMustBeHaveUppercase        = "password must contain at least one uppercase letter"
 	MessagePasswordMustBeHaveLowercase        = "password must contain at least one lowercase letter"
